@@ -1,6 +1,29 @@
-(ns async-tea-party.core)
+(ns async-tea-party.core
+  (:require [clojure.core.async :as async]))
 
-(defn foo
-  "I don't do a whole lot."
-  [x]
-  (println x "Hello, World!"))
+(def google-tea-service-chan (async/chan 10))
+(def yahoo-tea-service-chan (async/chan 10))
+
+(defn random-add []
+  (reduce + (conj [] (repeat (rand-int 10000) 1))))
+
+(defn request-google-tea-service []
+  (async/go
+    (random-add)
+    (async/>! google-tea-service-chan "team compliments of google")))
+
+(defn request-yahoo-tea-service []
+  (async/go
+    (random-add)
+    (async/>! yahoo-tea-service-chan "team compliments of yahoo")))
+
+
+(defn request-tea []
+  (request-google-tea-service)
+  (request-yahoo-tea-service)
+  (async/go (let [[v] (async/alts!
+                        [google-tea-service-chan
+                         yahoo-tea-service-chan])]
+              (println v))))
+
+(request-tea)
